@@ -404,21 +404,14 @@ GO
 		f.DateKey
 	FROM
 	RepuestosWeb.dbo.Orden as o
-	INNER JOIN RepuestosWeb.dbo.Detalle_orden as do
-		ON(o.ID_Orden = do.ID_Orden)
-	INNER JOIN RepuestosWeb.dbo.Descuento as d
-		ON(do.ID_Descuento = d.ID_Descuento)
-	INNER JOIN RepuestosWeb.dbo.StatusOrden as s 
-		ON(o.ID_StatusOrden = s.ID_StatusOrden)
+	INNER JOIN RepuestosWeb.dbo.Detalle_orden as do ON(o.ID_Orden = do.ID_Orden)
+	INNER JOIN RepuestosWeb.dbo.Descuento as d ON(do.ID_Descuento = d.ID_Descuento)
+	INNER JOIN RepuestosWeb.dbo.StatusOrden as s ON(o.ID_StatusOrden = s.ID_StatusOrden)
 	--Referencias a DWH
-	INNER JOIN Dimension.Clientes as c 
-		ON(O.ID_Cliente = c.ID_Cliente)
-	INNER JOIN Dimension.Geografia as g 
-		ON(O.ID_Ciudad = g.ID_Ciudad)
-	INNER JOIN Dimension.Partes as p 
-		ON (do.ID_Partes = p.ID_Partes)
-	INNER JOIN Dimension.Fecha as f 
-		ON (CAST((CAST(YEAR(o.Fecha_Orden) AS VARCHAR(4)))+left('0'+CAST(MONTH(o.Fecha_Orden) AS VARCHAR(4)),2)+left('0'+(CAST(DAY(o.Fecha_Orden) AS VARCHAR(4))),2) AS INT) = f.DateKey)
+	INNER JOIN Dimension.Clientes as c ON(O.ID_Cliente = c.ID_Cliente)
+	INNER JOIN Dimension.Geografia as g ON(O.ID_Ciudad = g.ID_Ciudad)
+	INNER JOIN Dimension.Partes as p ON (do.ID_Partes = p.ID_Partes)
+	INNER JOIN Dimension.Fecha as f  ON (CAST((CAST(YEAR(o.Fecha_Orden) AS VARCHAR(4)))+left('0'+CAST(MONTH(o.Fecha_Orden) AS VARCHAR(4)),2)+left('0'+(CAST(DAY(o.Fecha_Orden) AS VARCHAR(4))),2) AS INT) = f.DateKey)
 
 	SELECT * FROM Fact.ID_Orden
 
