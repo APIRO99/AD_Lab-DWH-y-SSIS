@@ -80,29 +80,49 @@ GO
 	GO
 
 	CREATE TABLE Dimension.Partes (
-		SK_Partes [UDT_SK] PRIMARY KEY IDENTITY
+		SK_Partes [UDT_SK] PRIMARY KEY IDENTITY,
+		--Columnas SCD Tipo 2
+		[FechaInicioValidez] DATETIME NOT NULL DEFAULT(GETDATE()),
+		[FechaFinValidez] DATETIME NULL,
+		--Columnas Linaje
+		ID_Batch UNIQUEIDENTIFIER NULL,
+		ID_SourceSystem VARCHAR(20)	
 	)
 	GO
 
 	CREATE TABLE Dimension.Geografia (
-		SK_Geografia [UDT_SK] PRIMARY KEY IDENTITY
+		SK_Geografia [UDT_SK] PRIMARY KEY IDENTITY,
+		--Columnas SCD Tipo 2
+		[FechaInicioValidez] DATETIME NOT NULL DEFAULT(GETDATE()),
+		[FechaFinValidez] DATETIME NULL,
+		--Columnas Linaje
+		ID_Batch UNIQUEIDENTIFIER NULL,
+		ID_SourceSystem VARCHAR(20)	
 	)
 	GO
 
 	CREATE TABLE Dimension.Clientes (
-		SK_Clientes [UDT_SK] PRIMARY KEY IDENTITY
+		SK_Clientes [UDT_SK] PRIMARY KEY IDENTITY,
+		--Columnas SCD Tipo 2
+		[FechaInicioValidez] DATETIME NOT NULL DEFAULT(GETDATE()),
+		[FechaFinValidez] DATETIME NULL,
+		--Columnas Linaje
+		ID_Batch UNIQUEIDENTIFIER NULL,
+		ID_SourceSystem VARCHAR(20)	
 	)
 	GO
 
 
 --Tablas Fact
-
 	CREATE TABLE Fact.Orden (
 		SK_Orden [UDT_SK] PRIMARY KEY IDENTITY,
 		SK_Partes [UDT_SK] REFERENCES Dimension.Partes(SK_Partes),
 		SK_Geografia [UDT_SK] REFERENCES Dimension.Geografia(SK_Geografia),
 		SK_Clientes [UDT_SK] REFERENCES Dimension.Clientes(SK_Clientes),
-		DateKey INT REFERENCES Dimension.Fecha(DateKey)
+		DateKey INT REFERENCES Dimension.Fecha(DateKey),
+		--Columnas Linaje
+		ID_Batch UNIQUEIDENTIFIER NULL,
+		ID_SourceSystem VARCHAR(20)	
 	)
 	GO
 
@@ -213,7 +233,6 @@ GO
 	ALTER TABLE Dimension.Geografia ADD ID_Pais [UDT_PK]
 	ALTER TABLE Dimension.Geografia ADD NombrePais [UDT_VarcharCorto]
 
-
 	--DimClientes
     -- Tabla Clientes
 	ALTER TABLE Dimension.Clientes ADD ID_Cliente [UDT_PK]
@@ -250,87 +269,91 @@ GO
 	)WITH (DROP_EXISTING = OFF, COMPRESSION_DELAY = 0)
 	GO
 
---Queries para llenar datos
+
+
 /*
+--Queries para llenar datos
 --Dimensiones
-
-	--DimCarrera
-	INSERT INTO Dimension.Carrera
-	(ID_Carrera, 
-	 ID_Facultad, 
-	 NombreCarrera, 
-	 NombreFacultad
+	--DimClientes
+	INSERT INTO Dimension.Clientes
+	(
+		ID_Cliente,
+		Genero,
+		PrimerNombre,
+		SegundoNombre,
+		PrimerApellido,
+		SegundoApellido,
+		Correo_Electronico,
+		FechaNacimiento
 	)
-	SELECT C.ID_Carrera, 
-			F.ID_Facultad, 
-			C.Nombre, 
-			F.Nombre
-	FROM Admisiones.dbo.Facultad F
-		INNER JOIN Admisiones.dbo.Carrera C ON(C.ID_Facultad = F.ID_Facultad);
+    SELECT
+    	CLIENT.ID_Cliente,
+    	CLIENT.Genero,
+    	CLIENT.PrimerNombre,
+    	CLIENT.SegundoNombre,
+    	CLIENT.PrimerApellido,
+    	CLIENT.SegundoApellido,
+    	CLIENT.Correo_Electronico,
+    	CLIENT.FechaNacimiento
+        FROM RepuestosWeb.dbo.Clientes AS CLIENT
 	
-	SELECT * FROM Dimension.Carrera
-
-	--DimCandidato
-	INSERT INTO Dimension.Candidato
-	([ID_Candidato], 
-	 [ID_Colegio], 
-	 [ID_Diversificado], 
-	 [NombreCandidato], 
-	 [ApellidoCandidato], 
-	 [Genero], 
-	 [FechaNacimiento], 
-	 [NombreColegio], 
-	 [NombreDiversificado]
+	SELECT * FROM Dimension.Clientes
+	
+	--DimGeografia
+	INSERT INTO Dimension.Geografia (
+		ID_Ciudad,
+		ID_Region,
+		ID_Pais,
+		NombreCiudad,
+		CodigoPostal,
+		NombreRegion,
+		NombrePais 
 	)
-	SELECT C.ID_Candidato, 
-			CC.ID_Colegio, 
-			D.ID_Diversificado, 
-			C.Nombre as NombreCandidato, 
-			C.Apellido as ApellidoCandidato, 
-			C.Genero, 
-			C.FechaNacimiento, 
-			CC.Nombre as NombreColegio, 
-			D.Nombre as NombreDiversificado
-	FROM Admisiones.DBO.Candidato C
-		INNER JOIN Admisiones.DBO.ColegioCandidato CC ON(C.ID_Colegio = CC.ID_Colegio)
-		INNER JOIN Admisiones.DBO.Diversificado D ON(C.ID_Diversificado = D.ID_Diversificado);
+	SELECT 
+		CITY.ID_Ciudad AS ID_Ciudad,
+		REG.ID_Region AS ID_Region,
+		COUNTRY.ID_Pais AS ID_Pais,
+		CITY.Nombre AS NombreCiudad,
+		CITY.CodigoPostal AS CodigoPostal,
+		REG.Nombre AS NombreRegion,
+		COUNTRY.Nombre AS NombrePais
+		FROM
+		RepuestosWeb.dbo.Ciudad AS CITY
+		INNER JOIN RepuestosWeb.dbo.Region AS REG ON CITY.ID_Region = REG.ID_Region
+		INNER JOIN RepuestosWeb.dbo.Pais AS COUNTRY ON REG.ID_Pais = COUNTRY.ID_Pais
 
-		SELECT * FROM Dimension.Candidato
-
-
-	--DimDescuento
-	INSERT INTO Dimension.Descuento (
-	  [ID_Descuento], 
-	  [Descripcion], 
-	  [PorcentajeDescuento]
+	Select * FROM Dimension.Geografia
+	
+	--DimPartes
+	INSERT INTO Dimension.Partes (
+		ID_Partes,
+		ID_Categoria,
+		ID_Linea,
+		NombreParte,
+		DescripcionParte,
+		NombreCategoria,
+		DescripcionCategoria,
+		NombreLinea,
+		DescripcionLinea,
+		PrecioParte
 	)
-	SELECT DBODESC.ID_Descuento as ID_Descuento,
-		   DBODESC.Descripcion as Descripcion,
-		   DBODESC.PorcentajeDescuento as PorcentajeDescuento
-	FROM Admisiones.DBO.Descuento DBODESC
+	SELECT 
+		PT.ID_Partes AS ID_Partes,
+		PT.Nombre AS NombreParte,
+		PT.Descripcion AS DescripcionParte,
+		PT.Precio AS PrecioParte,
+		CAT.ID_Categoria AS ID_Categoria,
+		CAT.Nombre AS NombreCategoria,
+		CAT.Descripcion AS DescripcionCategoria,
+		LN.ID_Linea AS ID_Linea,
+		LN.Nombre AS NombreLinea,
+		LN.Descripcion AS DescripcionLinea
+		FROM 
+			RepuestosWeb.dbo.Partes AS PT
+			INNER JOIN RepuestosWeb.dbo.Categoria AS CAT  ON PT.ID_Categoria = CAT.ID_Categoria
+			INNER JOIN RepuestosWeb.dbo.Linea AS LN  ON CAT.ID_Linea = LN.ID_Linea
 
-		SELECT * FROM Dimension.Descuento
-
-
-	--DimMateria
-	INSERT INTO Dimension.Materia (
-	  [ID_Materia], 
-	  [NombreMateria], 
-	  [ID_Examen],
-	  [ID_ExamenDetalle],
-	  [NotaArea]
-	)
-	SELECT M.ID_Materia as ID_Materia,
-		   M.NombreMateria as NombreMateria,
-		   ED.ID_Examen as ID_Examen,
-		   ED.ID_ExamenDetalle as ID_ExamenDetalle,
-		   ED.NotaArea as NotaArea
-		   
-	FROM Admisiones.DBO.Materia M
-		 INNER JOIN Admisiones.DBO.Examen_detalle ED ON( ED.ID_Materia = M.ID_Materia)
-
-		SELECT * FROM Dimension.Materia
-
+	SELECT * FROM Dimension.Partes
 --------------------------------------------------------------------------------------------
 -----------------------CORRER CREATE de USP_FillDimDate PRIMERO!!!--------------------------
 --------------------------------------------------------------------------------------------
@@ -344,48 +367,59 @@ GO
 	end
 	SELECT * FROM Dimension.Fecha
 	
-	--Fact
-	INSERT INTO [Fact].[Examen]
-	([SK_Candidato], 
-	 [SK_Carrera], 
-	 [SK_Materia], 
-	 [SK_Descuento], 
-	 [DateKey], 
-	 [ID_Examen], 
-	 [Precio], 
-	 [NotaTotal]
+	--FACT Table
+	INSERT INTO Fact.Orden 
+	(
+		SK_Clientes,
+		SK_Geografia,
+		SK_Partes,
+		ID_Orden,
+		ID_Cliente,
+		ID_StatusOrden,
+		ID_Descuento,
+		ID_DetalleOrden,
+		Total_Orden,
+		PorcentajeDescuento,
+		Cantidad,
+		NombreDescuento,
+		NombreStatus,
+		Fecha_Orden,
+		DateKey
 	)
-	SELECT  --Columnas de mis dimensiones en DWH
-			SK_Candidato, 
-			SK_Carrera,
-			SK_Materia,
-			SK_Descuento,
-			F.DateKey, 
-			R.ID_Examen, 
-			R.Precio, 
-			R.Nota
-				 
-	FROM Admisiones.DBO.Examen R
-		--Referencias a DWH
-		INNER JOIN Dimension.Candidato C ON(C.ID_Candidato = R.ID_Candidato)
-		INNER JOIN Dimension.Carrera CA ON(CA.ID_Carrera = R.ID_Carrera)
-		INNER JOIN Dimension.Descuento DE ON(DE.ID_Descuento = R.ID_Descuento)
-		INNER JOIN Dimension.Materia MAT ON(MAT.ID_Examen = R.ID_Examen)
-		INNER JOIN Dimension.Fecha F ON(CAST((CAST(YEAR(R.FechaPrueba) AS VARCHAR(4)))+left('0'+CAST(MONTH(R.FechaPrueba) AS VARCHAR(4)),2)+left('0'+(CAST(DAY(R.FechaPrueba) AS VARCHAR(4))),2) AS INT)  = F.DateKey);
+	SELECT 
+		c.SK_Clientes,
+		g.SK_Geografia,
+		p.SK_Partes,
+		o.ID_Orden,
+		o.ID_Cliente,
+		s.ID_StatusOrden,
+		d.ID_Descuento,
+		do.ID_DetalleOrden,
+		o.Total_Orden,
+		d.PorcentajeDescuento,
+		do.Cantidad,
+		d.NombreDescuento,
+		s.NombreStatus,
+		o.Fecha_Orden,
+		f.DateKey
+	FROM
+	RepuestosWeb.dbo.Orden as o
+	INNER JOIN RepuestosWeb.dbo.Detalle_orden as do
+		ON(o.ID_Orden = do.ID_Orden)
+	INNER JOIN RepuestosWeb.dbo.Descuento as d
+		ON(do.ID_Descuento = d.ID_Descuento)
+	INNER JOIN RepuestosWeb.dbo.StatusOrden as s 
+		ON(o.ID_StatusOrden = s.ID_StatusOrden)
+	--Referencias a DWH
+	INNER JOIN Dimension.Clientes as c 
+		ON(O.ID_Cliente = c.ID_Cliente)
+	INNER JOIN Dimension.Geografia as g 
+		ON(O.ID_Ciudad = g.ID_Ciudad)
+	INNER JOIN Dimension.Partes as p 
+		ON (do.ID_Partes = p.ID_Partes)
+	INNER JOIN Dimension.Fecha as f 
+		ON (CAST((CAST(YEAR(o.Fecha_Orden) AS VARCHAR(4)))+left('0'+CAST(MONTH(o.Fecha_Orden) AS VARCHAR(4)),2)+left('0'+(CAST(DAY(o.Fecha_Orden) AS VARCHAR(4))),2) AS INT) = f.DateKey)
 
-
-
---------------------------------------------------------------------------------------------
-------------------------------------Resultado Final-----------------------------------------
---------------------------------------------------------------------------------------------	
-
-	SELECT *
-	FROM	Fact.Examen AS E INNER JOIN
-			Dimension.Candidato AS C ON E.SK_Candidato = C.SK_Candidato INNER JOIN
-			Dimension.Carrera AS CA ON E.SK_Carrera = CA.SK_Carrera INNER JOIN
-			Dimension.Materia AS MAT ON E.SK_Materia = MAT.SK_Materia INNER JOIN
-			Dimension.Descuento AS DE ON E.SK_Descuento = DE.SK_Descuento INNER JOIN
-			Dimension.Fecha AS F ON E.DateKey = F.DateKey
-
+	SELECT * FROM Fact.ID_Orden
 
 */
